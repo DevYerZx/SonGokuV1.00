@@ -1,18 +1,18 @@
-import makeWASocket, {
+const {
+  default: makeWASocket,
   DisconnectReason,
   useMultiFileAuthState,
   fetchLatestBaileysVersion
-} from "@whiskeysockets/baileys"
+} = require("@whiskeysockets/baileys")
 
-import P from "pino"
-import fs from "fs"
-import path from "path"
-import chalk from "chalk"
-import { Boom } from "@hapi/boom"
+const P = require("pino")
+const fs = require("fs")
+const path = require("path")
+const chalk = require("chalk")
+const { Boom } = require("@hapi/boom")
 
-import { mainHandler } from "./handler.js"
+const { mainHandler } = require("./handler.js")
 
-const __dirname = path.resolve()
 const SESSION_DIR = path.join(__dirname, "sessions")
 
 if (!fs.existsSync(SESSION_DIR)) {
@@ -31,7 +31,7 @@ async function startBot() {
     version,
     auth: state,
     logger: P({ level: "silent" }),
-    printQRInTerminal: false, // 🔴 NO QR
+    printQRInTerminal: false, // ❌ NO QR
     markOnlineOnConnect: true,
     keepAliveIntervalMs: 30000,
     browser: ["SonGokuBot", "Chrome", "1.0"]
@@ -39,7 +39,7 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds)
 
-  // 👉 SI NO ESTÁ VINCULADO, GENERA CÓDIGO
+  // 👉 Vinculación por CÓDIGO
   if (!sock.authState.creds.registered) {
     const code = await sock.requestPairingCode("519XXXXXXXX")
     console.log(chalk.green("🔗 Código de vinculación:"), code)
@@ -52,22 +52,14 @@ async function startBot() {
       const statusCode =
         new Boom(lastDisconnect?.error)?.output?.statusCode
 
-      console.log(
-        chalk.red("✖ Conexión cerrada →"),
-        statusCode
-      )
+      console.log(chalk.red("✖ Conexión cerrada →"), statusCode)
 
-      // ⚠️ Manejo especial para bots con CÓDIGO
       if (statusCode === 401) {
         retry401++
-
-        console.log(
-          chalk.yellow(`⚠ Error 401 (intento ${retry401})`)
-        )
+        console.log(chalk.yellow(`⚠ Error 401 (${retry401})`))
 
         if (retry401 >= 3) {
           retry401 = 0
-
           if (!sock.authState.creds.registered) {
             const code = await sock.requestPairingCode("519XXXXXXXX")
             console.log(
@@ -77,11 +69,9 @@ async function startBot() {
           }
         }
 
-        setTimeout(startBot, 5000)
-        return
+        return setTimeout(startBot, 5000)
       }
 
-      // Otros errores → reconectar normal
       setTimeout(startBot, 3000)
     }
 
@@ -110,10 +100,7 @@ async function startBot() {
 
       await mainHandler(sock, msg)
     } catch (err) {
-      console.log(
-        chalk.red("❌ Error en mensaje:"),
-        err
-      )
+      console.log(chalk.red("❌ Error en mensaje:"), err)
     }
   })
 }
@@ -127,5 +114,3 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (err) => {
   console.error("❌ Promesa rechazada:", err)
 })
-
-
