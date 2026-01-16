@@ -8,94 +8,107 @@ module.exports = {
   categoria: "menu",
 
   run: async (client, m, { prefix }) => {
+
     const usedPrefix = prefix || "."
 
-    /* ───── ESTADÍSTICAS ───── */
     let totalUses = 0
     let totalUsers = 0
+    let topCommands = []
+    let topUsers = []
+    let topGroups = []
 
     try {
       const db = JSON.parse(fs.readFileSync(dbPath))
+
       totalUses = db.total || 0
       totalUsers = Object.keys(db.users || {}).length
+
+      topCommands = Object.entries(db.commands || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+
+      topUsers = Object.values(db.users || {})
+        .sort((a, b) => b.uses - a.uses)
+        .slice(0, 3)
+
+      topGroups = Object.entries(db.groups || {})
+        .map(([id, data]) => ({
+          id,
+          uses: data.uses || 0
+        }))
+        .sort((a, b) => b.uses - a.uses)
+        .slice(0, 3)
+
     } catch (e) {
       console.log("MENU ERROR:", e)
     }
 
-    /* ───── ANIMACIÓN TRANSFORMACIÓN ───── */
-    await client.sendMessage(m.chat, { text: "⚡ Cargando Ki..." }, { quoted: m })
-    await new Promise(r => setTimeout(r, 600))
-    await client.sendMessage(m.chat, { text: "⚡⚡⚡⚡⚡⚡⚡" })
-    await new Promise(r => setTimeout(r, 600))
-    await client.sendMessage(m.chat, { text: "🔥 𝑺𝑼𝑷𝑬𝑹 𝑺𝑨𝑰𝒀𝑨𝑱𝑰𝑵 🔥" })
-    await new Promise(r => setTimeout(r, 600))
-    await client.sendMessage(m.chat, { text: "⚪ 𝑼𝑳𝑻𝑹𝑨 𝑰𝑵𝑺𝑻𝑰𝑵𝑻𝑶 ⚪" })
+    const topCmdText = topCommands.length
+      ? topCommands.map((c, i) =>
+          `⚡ ${i + 1}. ${usedPrefix}${c[0]} (${c[1]})`
+        ).join("\n")
+      : "Sin datos"
 
-    /* ───── TEXTO ULTRA DISEÑO ───── */
     const caption = `
-╔═══━━━═══━━━═══╗
-┃ 🐉 𝕾𝖔𝖓 𝕲𝖔𝖐𝖚 𝕭𝖔𝖙 🐉 ┃
-┃ ⚡ 𝕌𝕝𝕥𝕣𝕒 𝕀𝕟𝕤𝕥𝕚𝕟𝕥𝕠 ⚡ ┃
-╚═══━━━═══━━━═══╝
+🐉🔥 𝑺𝑶𝑵 𝑮𝑶𝑲𝑼 𝑩𝑶𝑻 🔥🐉
+━━━━━━━━━━━━━━━━━━
+👤 Guerrero Z: *${m.pushName}*
 
-✦ 𝓖𝓾𝓮𝓻𝓻𝓮𝓻𝓸 𝓩
-╰➤ ❝ ${m.pushName} ❞
+📊 PODER DE COMBATE
+👥 Usuarios: *${totalUsers}*
+⚡ Técnicas usadas: *${totalUses}*
 
-╭━━━━━━━━━━━━━━━━━━╮
-┃ 🌌 𝙋𝙊𝘿𝙀𝙍 𝘿𝙀 𝘾𝙊𝙈𝘽𝘼𝙏𝙀
-┃ 👥 Usuarios ⟿ ${totalUsers}
-┃ 🔥 Técnicas ⟿ ${totalUses}
-╰━━━━━━━━━━━━━━━━━━╯
+🔥 TOP TÉCNICAS
+${topCmdText}
 
-╭━━━━━━━━━━━━━━━━━━╮
-┃ 🐲 𝑴𝑶𝑫𝑶𝑺 𝑺𝑨𝑰𝒀𝑨𝑱𝑰𝑵
-┃ 🟠 Base
-┃ 🟡 Super Saiyajin
-┃ 🔵 SSJ Blue
-┃ ⚪ Ultra Instinto
-╰━━━━━━━━━━━━━━━━━━╯
-
-⚡ Pulsa el botón para desplegar el poder
+━━━━━━━━━━━━━━━━━━
+⚡ Selecciona un modo ⚡
 `
 
-    /* ───── LIST MESSAGE (MENÚ PRO) ───── */
-    await client.sendMessage(m.chat, {
-      image: {
-        url: "https://i.ibb.co/Xrxbcymh/IMG-20241011-WA0000.jpg"
-      },
-      caption,
-      footer: "🐉 SonGokuBOT • Poder Saiyajin • DVYER 🐉",
-      buttonText: "⚡ DESPLEGAR PODER ⚡",
+    const listMessage = {
+      text: caption,
+      footer: "🐲 SonGokuBOT • Poder Saiyajin • DVYER",
+      title: "🌌 MENÚ SAIYAJIN",
+      buttonText: "🐉 ABRIR MENÚ",
       sections: [
         {
-          title: "🟠 BASE FORM",
+          title: "🔥 MODOS SAIYAJIN",
           rows: [
-            { title: "📥 Descargas", rowId: `${usedPrefix}menu_descargas` },
-            { title: "🎬 Películas & Series", rowId: `${usedPrefix}menu_peliculas` }
+            {
+              title: "📥 Descargas",
+              description: "Audio, video, imágenes",
+              rowId: `${usedPrefix}menu_descargas`
+            },
+            {
+              title: "🎬 Películas & Series",
+              description: "Netflix, anime, series",
+              rowId: `${usedPrefix}menu_peliculas`
+            },
+            {
+              title: "🎮 Juegos",
+              description: "Diversión y minijuegos",
+              rowId: `${usedPrefix}menu_juegos`
+            }
           ]
         },
         {
-          title: "🟡 SUPER SAIYAJIN",
+          title: "⚡ INFORMACIÓN",
           rows: [
-            { title: "🎵 Música", rowId: `${usedPrefix}menu_musica` },
-            { title: "🖼️ Stickers", rowId: `${usedPrefix}menu_stickers` }
-          ]
-        },
-        {
-          title: "🔵 SUPER SAIYAJIN BLUE",
-          rows: [
-            { title: "🎮 Juegos", rowId: `${usedPrefix}menu_juegos` },
-            { title: "⚙️ Herramientas", rowId: `${usedPrefix}menu_tools` }
-          ]
-        },
-        {
-          title: "⚪ ULTRA INSTINTO",
-          rows: [
-            { title: "📜 Menú Completo", rowId: `${usedPrefix}menu_completo` },
-            { title: "👑 Comandos Premium", rowId: `${usedPrefix}menu_premium` }
+            {
+              title: "📜 Menú completo",
+              description: "Todos los comandos",
+              rowId: `${usedPrefix}menu_completo`
+            },
+            {
+              title: "🐲 Creador",
+              description: "Información del creador",
+              rowId: `${usedPrefix}owner`
+            }
           ]
         }
       ]
-    }, { quoted: m, ...global.channelInfo })
+    }
+
+    await client.sendMessage(m.chat, listMessage, { quoted: m })
   }
 }
