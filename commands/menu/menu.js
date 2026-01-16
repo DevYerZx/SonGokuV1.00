@@ -23,17 +23,14 @@ module.exports = {
       totalUses = db.total || 0
       totalUsers = Object.keys(db.users || {}).length
 
-      // 🔥 TOP 3 COMANDOS
       topCommands = Object.entries(db.commands || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
 
-      // 👑 TOP 3 USUARIOS
       topUsers = Object.values(db.users || {})
         .sort((a, b) => b.uses - a.uses)
         .slice(0, 3)
 
-      // 🏠 TOP 3 GRUPOS
       topGroups = Object.entries(db.groups || {})
         .map(([id, data]) => ({
           id,
@@ -46,7 +43,6 @@ module.exports = {
       console.log("MENU STATS ERROR:", e)
     }
 
-    // 🐉 IMÁGENES DE GOKU
     const mediaList = [
       "https://i.ibb.co/Xrxbcymh/IMG-20241011-WA0000.jpg"
     ]
@@ -55,15 +51,15 @@ module.exports = {
 
     const topCmdText = topCommands.length
       ? topCommands.map((c, i) =>
-          `⚡ ${i + 1}. *${usedPrefix}${c[0]}* — ${c[1]} usos`
+          `⟣ ${i + 1} ⟢ 𝙏𝙀𝘾𝙃 » 𝖃${usedPrefix}${c[0]} 〔${c[1]}〕`
         ).join("\n")
-      : "Sin datos"
+      : "⟣ Sin datos ⟢"
 
     const topUserText = topUsers.length
       ? topUsers.map((u, i) =>
-          `👤 ${i + 1}. ${u.name || u.number || u.id} — ${u.uses} usos`
+          `⟣ ${i + 1} ⟢ 𝖂𝖆𝖗𝖗𝖎𝖔𝖗 » ${u.name || u.number || u.id} 〔${u.uses}〕`
         ).join("\n")
-      : "Sin datos"
+      : "⟣ Sin datos ⟢"
 
     const topGroupText = topGroups.length
       ? await Promise.all(
@@ -73,59 +69,74 @@ module.exports = {
               const meta = await client.groupMetadata(g.id)
               name = meta.subject || g.id
             } catch {}
-            return `🏠 ${i + 1}. ${name} — ${g.uses} usos`
+            return `⟣ ${i + 1} ⟢ 𝕌𝕟𝕚𝕧𝕖𝕣𝕤𝕖 » ${name} 〔${g.uses}〕`
           })
         ).then(r => r.join("\n"))
-      : "Sin datos"
+      : "⟣ Sin datos ⟢"
 
     const caption = `
-╔════════════════════════════╗
-║ 🐉🔥 𝗦𝗢𝗡 𝗚𝗢𝗞𝗨 𝗕𝗢𝗧 🔥🐉 ║
-╠════════════════════════════╣
-👤 Guerrero Z: ${m.pushName}
+╭━━━╮╭━━━╮╭━━━╮╭━━━╮
+┃ 🐉 ┃┃ 🔥 ┃┃ ⚡ ┃┃ 👑 ┃
+╰━━━╯╰━━━╯╰━━━╯╰━━━╯
 
-📊 PODER DE COMBATE
-👥 Guerreros activos: ${totalUsers}
-⚡ Técnicas usadas: ${totalUses}
+𓆩 𝕾𝖔𝖓 𝕲𝖔𝖐𝖚 𝕭𝖔𝖙 𓆪
+𓆩 ⚡ 𝖀𝖑𝖙𝖗𝖆 𝕴𝖓𝖘𝖙𝖎𝖓𝖈𝖙𝖔 ⚡ 𓆪
 
-🔥 TOP 3 TÉCNICAS
+════════════════════
+👤 𝒁 𝑾𝒂𝒓𝒓𝒊𝒐𝒓
+➥ ❝ ${m.pushName} ❞
+════════════════════
+
+╔═━━━═╗ 🌌 𝙋𝙊𝘿𝙀𝙍 𝘿𝙀 𝘾𝙊𝙈𝘽𝘼𝙏𝙀
+║ ⚔️ ║ 👥 ${totalUsers}
+║ 🔥 ║ ⚡ ${totalUses}
+╚═━━━═╝
+
+╔═━━━═╗ 🧬 𝑻𝑹𝑨𝑵𝑺𝑭𝑶𝑹𝑴𝑨𝑪𝑰𝑶́𝑵
+║ 🟠 ║ 𝓑𝓪𝓼𝓮
+║ 🟡 ║ 𝓢𝓾𝓹𝓮𝓻 𝓢𝓪𝓲𝔂𝓪𝓳𝓲𝓷
+║ 🔵 ║ 𝓢𝓢𝓙 𝓑𝓵𝓾𝓮
+║ ⚪ ║ 𝓤𝓵𝓽𝓻𝓪 𝓘𝓷𝓼𝓽𝓲𝓷𝓽𝓸
+╚═━━━═╝
+
+╔═━━━═╗ 🔥 𝑻𝑶𝑷 𝟑 · 𝑻𝑬́𝑪𝑵𝑰𝑪𝑨𝑺
+╚═━━━═╝
 ${topCmdText}
 
-👑 TOP 3 GUERREROS
+╔═━━━═╗ 👑 𝑻𝑶𝑷 𝟑 · 𝑮𝑼𝑬𝑹𝑹𝑬𝑹𝑶𝑺
+╚═━━━═╝
 ${topUserText}
 
-🏠 TOP 3 UNIVERSOS
+╔═━━━═╗ 🏠 𝑻𝑶𝑷 𝟑 · 𝑼𝑵𝑰𝑽𝑬𝑹𝑺𝑶𝑺
+╚═━━━═╝
 ${topGroupText}
 
-━━━━━━━━━━━━━━━━━━
-📥 Descargas → ${usedPrefix}menu_descargas
-🎬 Películas & Series → ${usedPrefix}menu_peliculas
-🎮 Juegos → ${usedPrefix}menu_juegos
+╔═━━━═╗ 📜 𝑴𝑬𝑵𝑼́ 𝑷𝑶𝑹 𝑵𝑰𝑽𝑬𝑳𝑬𝑺
+║ 🟠 ║ ${usedPrefix}menu_descargas
+║ 🟡 ║ ${usedPrefix}menu_peliculas
+║ 🔵 ║ ${usedPrefix}menu_juegos
+║ ⚪ ║ ${usedPrefix}menu_completo
+╚═━━━═╝
 
-━━━━━━━━━━━━━━━━━━
-🐲 CREADOR: DVYER
-⚡ Poder Saiyajin sin límites
+𓆩 👑 𝕮𝖗𝖊𝖆𝖉𝖔𝖗 𓆪
+𓆩 𝓓𝓥𝓨𝓔𝓡 𓆪
+⚡ 𝓔𝓵 𝓹𝓸𝓭𝓮𝓻 𝓷𝓸 𝓽𝓲𝓮𝓷𝓮 𝓵𝓲́𝓶𝓲𝓽𝓮𝓼
 `
 
     const buttons = [
       {
         buttonId: `${usedPrefix}menu_descargas`,
-        buttonText: { displayText: "📥 Descargas" },
+        buttonText: { displayText: "📥 𝕯𝖊𝖘𝖈𝖆𝖗𝖌𝖆𝖘" },
         type: 1
       },
       {
         buttonId: `${usedPrefix}peliculas_series`,
-        buttonText: { displayText: "🎬 Películas & Series" },
-        type: 1
-      },
-      {
-        buttonId: `${usedPrefix}menu_completo`,
-        buttonText: { displayText: "📜 Menú completo" },
+        buttonText: { displayText: "🎬 𝕻𝖊𝖑𝖎́𝖈𝖚𝖑𝖆𝖘" },
         type: 1
       },
       {
         buttonId: `${usedPrefix}menu_juegos`,
-        buttonText: { displayText: "🎮 Juegos" },
+        buttonText: { displayText: "🎮 𝕵𝖚𝖊𝖌𝖔𝖘" },
         type: 1
       }
     ]
@@ -136,7 +147,7 @@ ${topGroupText}
         image: { url: randomMedia },
         caption,
         buttons,
-        footer: "🐉 SonGokuBOT • Poder Saiyajin • DVYER 🐉",
+        footer: "🐉 𝕾𝖔𝖓𝕲𝖔𝖐𝖚𝕭𝖔𝖙 • 𝕌𝕀 • 𝓓𝓥𝓨𝓔𝓡 🐉",
         headerType: 4
       },
       { quoted: m, ...global.channelInfo }
