@@ -1,50 +1,70 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("fs")
+const path = require("path")
+const { exec } = require("child_process")
 
-function reloadCommands(dir = path.join(__dirname, "..")) {
-  const commandsMap = new Map();
+const COMMANDS_DIR = path.join(__dirname, "..")
 
-  function readCommands(folder) {
-    const files = fs.readdirSync(folder);
-    files.forEach((file) => {
-      const fullPath = path.join(folder, file);
-      if (fs.lstatSync(fullPath).isDirectory()) {
-        readCommands(fullPath);
-      } else if (file.endsWith(".js")) {
-        delete require.cache[require.resolve(fullPath)];
-        const cmd = require(fullPath);
-        if (cmd.command) {
-          cmd.command.forEach((c) => {
-            commandsMap.set(c, cmd);
-          });
-        }
+function reloadCommands() {
+  const commandsMap = new Map()
+
+  function scan(dir) {
+    for (const file of fs.readdirSync(dir)) {
+      const full = path.join(dir, file)
+
+      if (fs.statSync(full).isDirectory()) {
+        scan(full)
+        continue
       }
-    });
+
+      if (!file.endsWith(".js")) continue
+
+      // limpiar cache solo de comandos
+      try {
+        delete require.cache[require.resolve(full)]
+      } catch {}
+
+      const cmd = require(full)
+      if (!cmd?.command) continue
+
+      for (const c of cmd.command) {
+        commandsMap.set(c, cmd)
+      }
+    }
   }
 
-  readCommands(dir);
-  global.comandos = commandsMap;
+  scan(COMMANDS_DIR)
+
+  global.comandos = commandsMap
 }
 
 module.exports = {
   command: ["update", "actualizar"],
-  description: "Actualiza desde GitHub",
+  description: "Actualiza el bot desde GitHub",
   isOwner: true,
   categoria: "dueño",
-  run: async (client, m, args, from, isCreator) => {
-    const { exec } = require("child_process");
-    const baseDir = path.join(__dirname, "..");
 
-    exec("git pull", (error, stdout, stderr) => {
-      reloadCommands(baseDir);
-      let msg = "";
-      if (stdout.includes("Already up to date.")) {
-        msg = "*Estado:* Todo está actualizado";
-      } else {
-        msg = `*Actualización completada*\n\n${stdout}`;
+  run: async (client, m) => {
+    exec("git pull", { cwd: process.cwd() }, (err, stdout, stderr) => {
+      if (err) {
+        return client.sendMessage(
+          m.key.remoteJid,
+          { text: `❌ Error al actualizar:\n${stderr || err.message}` },
+          { quoted: m }
+        )
       }
-      client.sendMessage(m.key.remoteJid, { text: msg }, { quoted: m });
-    });
+
+      reloadCommands()
+
+      let msg
+      if (/Already up to date|Ya está actualizado/i.test(stdout)) {
+        msg = "✅ *El bot ya está actualizado*"
+      } else {
+        msg = `✅ *Actualización completada*\n\n${stdout}`
+      }
+
+      client.sendMessage(m.key.remoteJid, { text: msg }, { quoted: m })
+    })
   },
-};
+}
+
 
