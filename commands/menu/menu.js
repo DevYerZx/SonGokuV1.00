@@ -48,7 +48,7 @@ module.exports = {
 
     // 🐉 IMÁGENES DE GOKU
     const mediaList = [
-      "https://i.ibb.co/5hQJ7KZ/goku-ultra-instinct.jpg"
+      "https://i.ibb.co/Xrxbcymh/IMG-20241011-WA0000.jpg"
     ]
 
     const randomMedia = mediaList[Math.floor(Math.random() * mediaList.length)]
