@@ -1,116 +1,177 @@
+/*************************************************
+                  dvyer
+ * Node.js 18.x / 20.x LTS
+ *************************************************/
+
+require("./settings")
+require("./lib/database")
+
 const {
   default: makeWASocket,
-  DisconnectReason,
   useMultiFileAuthState,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  jidDecode,
+  DisconnectReason,
 } = require("@whiskeysockets/baileys")
 
-const P = require("pino")
+const pino = require("pino")
+const chalk = require("chalk")
 const fs = require("fs")
 const path = require("path")
-const chalk = require("chalk")
+const os = require("os")
+const readline = require("readline")
 const { Boom } = require("@hapi/boom")
 
-const { mainHandler } = require("./handler.js")
+const { smsg } = require("./lib/message")
+const welcome = require("./lib/system/welcome")
+const mainHandler = require("./main")
+const { startAutoRestart } = require("./lib/system/autoRestart")
 
-const SESSION_DIR = path.join(__dirname, "sessions")
+const SESSIONS_DIR = path.join(__dirname, "sessions")
+const RECONNECT_DELAY = 3000
+let databaseLoaded = false
+let retry401 = 0
 
-if (!fs.existsSync(SESSION_DIR)) {
-  fs.mkdirSync(SESSION_DIR, { recursive: true })
+// ================= UTILS =================
+const delay = ms => new Promise(r => setTimeout(r, ms))
+
+const log = {
+  info: m => console.log(chalk.cyan("[INFO]"), m),
+  ok: m => console.log(chalk.green("[OK]"), m),
+  warn: m => console.log(chalk.yellow("[WARN]"), m),
+  err: m => console.log(chalk.red("[ERROR]"), m),
 }
 
-let sock
-let retry401 = 0
-const cooldown = new Map()
+const question = q => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+  return new Promise(res =>
+    rl.question(q, a => {
+      rl.close()
+      res(a.trim())
+    })
+  )
+}
 
-async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
+const safeMkdir = d => !fs.existsSync(d) && fs.mkdirSync(d, { recursive: true })
+// ⚠️ YA NO BORRAMOS SESIÓN AUTOMÁTICAMENTE
+// const clearSession = d => fs.rmSync(d, { recursive: true, force: true })
+
+console.log(chalk.yellow("════════════════════════════"))
+log.info(`OS: ${os.platform()} ${os.arch()}`)
+log.info(`Node: ${process.version}`)
+log.info(`RAM libre: ${(os.freemem() / 1024 / 1024).toFixed(0)} MB`)
+log.info(`Hora: ${new Date().toLocaleString("es-PE", { hour12: false })}`)
+console.log(chalk.yellow("════════════════════════════"))
+
+async function startBot(botNumber = "main") {
+  const sessionPath = path.join(SESSIONS_DIR, botNumber)
+  safeMkdir(sessionPath)
+
+  const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
   const { version } = await fetchLatestBaileysVersion()
 
-  sock = makeWASocket({
+  const client = makeWASocket({
     version,
     auth: state,
-    logger: P({ level: "silent" }),
-    printQRInTerminal: false, // ❌ NO QR
-    markOnlineOnConnect: true,
+    browser: ["Ubuntu", "Chrome"],
+    logger: pino({ level: "fatal" }),
+    printQRInTerminal: false, // ✔ código
+    syncFullHistory: false,
+    markOnlineOnConnect: true, // 🔥 IMPORTANTE
     keepAliveIntervalMs: 30000,
-    browser: ["SonGokuBot", "Chrome", "1.0"]
+    generateHighQualityLinkPreview: false,
   })
 
-  sock.ev.on("creds.update", saveCreds)
-
-  // 👉 Vinculación por CÓDIGO
-  if (!sock.authState.creds.registered) {
-    const code = await sock.requestPairingCode("519XXXXXXXX")
-    console.log(chalk.green("🔗 Código de vinculación:"), code)
+  // 👉 VINCULACIÓN POR CÓDIGO
+  if (!state.creds.registered) {
+    const phone = await question("📱 Número WhatsApp (519xxxxxxxx): ")
+    try {
+      const code = await client.requestPairingCode(phone)
+      log.ok(`Código de vinculación: ${code}`)
+    } catch (e) {
+      log.err("No se pudo emparejar")
+      return
+    }
   }
 
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update
+  if (!databaseLoaded) {
+    await global.loadDatabase()
+    databaseLoaded = true
+    log.ok("Base de datos cargada")
+  }
 
+  client.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
     if (connection === "close") {
-      const statusCode =
-        new Boom(lastDisconnect?.error)?.output?.statusCode
+      const code = new Boom(lastDisconnect?.error)?.output?.statusCode
+      log.warn(`Desconectado (${code})`)
 
-      console.log(chalk.red("✖ Conexión cerrada →"), statusCode)
-
-      if (statusCode === 401) {
+      // ⚠️ Manejo correcto para CÓDIGO
+      if (code === 401) {
         retry401++
-        console.log(chalk.yellow(`⚠ Error 401 (${retry401})`))
+        log.warn(`Error 401 (intento ${retry401})`)
 
-        if (retry401 >= 3) {
+        if (retry401 >= 3 && !state.creds.registered) {
           retry401 = 0
-          if (!sock.authState.creds.registered) {
-            const code = await sock.requestPairingCode("519XXXXXXXX")
-            console.log(
-              chalk.green("🔑 Nuevo código de vinculación:"),
-              code
-            )
-          }
+          const phone = await question("📱 Reingresa tu número: ")
+          const newCode = await client.requestPairingCode(phone)
+          log.ok(`Nuevo código: ${newCode}`)
         }
-
-        return setTimeout(startBot, 5000)
       }
 
-      setTimeout(startBot, 3000)
+      log.warn("Reintentando conexión sin cerrar proceso...")
+      await delay(RECONNECT_DELAY)
+      startBot(botNumber)
     }
 
     if (connection === "open") {
       retry401 = 0
-      console.log(chalk.green("✔ Bot conectado correctamente"))
+      log.ok("Bot conectado correctamente")
+      startAutoRestart(client)
+      log.ok("Auto-restart inteligente activo")
     }
   })
 
-  sock.ev.on("messages.upsert", async ({ messages }) => {
+  client.ev.on("messages.upsert", async ({ messages }) => {
     try {
-      const msg = messages[0]
-      if (!msg?.message || msg.key.fromMe) return
+      const m = messages?.[0]
+      if (!m?.message) return
+      if (m.key.remoteJid === "status@broadcast") return
 
-      const jid =
-        msg.key.participant || msg.key.remoteJid
-
-      const now = Date.now()
-      if (cooldown.has(jid) && now - cooldown.get(jid) < 600) return
-      cooldown.set(jid, now)
-
-      await sock.sendPresenceUpdate(
-        "composing",
-        msg.key.remoteJid
-      )
-
-      await mainHandler(sock, msg)
-    } catch (err) {
-      console.log(chalk.red("❌ Error en mensaje:"), err)
+      const msg = smsg(client, m)
+      await mainHandler(client, msg)
+    } catch (e) {
+      log.err(e)
     }
   })
+
+  client.ev.on("group-participants.update", async u => {
+    try {
+      await welcome(client, u)
+    } catch {}
+  })
+
+  client.decodeJid = jid => {
+    if (!jid) return jid
+    if (/:\d+@/gi.test(jid)) {
+      const d = jidDecode(jid) || {}
+      return d.user && d.server ? `${d.user}@${d.server}` : jid
+    }
+    return jid
+  }
+
+  client.ev.on("creds.update", saveCreds)
 }
+
+process.on("unhandledRejection", e => log.err(e))
+process.on("uncaughtException", e => log.err(e))
 
 startBot()
 
-process.on("uncaughtException", (err) => {
-  console.error("❌ Error crítico:", err)
-})
+/*
+ ❌ ELIMINADO fs.watchFile
+ ✔ Tu comando update se encarga del reload
+*/
 
-process.on("unhandledRejection", (err) => {
-  console.error("❌ Promesa rechazada:", err)
-})
