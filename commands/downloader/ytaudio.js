@@ -5,8 +5,7 @@ const fs = require("fs")
 const { payOrBypass } = require("../../lib/pay")
 
 const BOT_NAME = "KILLUA-BOT v1.00"
-const SOYMAYCOL_API = "https://api.soymaycol.icu/ytdl"
-const API_KEY = "may-3697c22b"
+const ADONIX_API = "https://api-adonix.ultraplus.click/download/ytaudio"
 
 // 💰 COSTO
 const COSTO_AUDIO = 60
@@ -35,7 +34,7 @@ module.exports = {
       let videoUrl = args.join(" ")
       let title = "audio"
 
-      // 🔎 Buscar si no es enlace
+      // 🔎 Buscar si no es link
       if (!videoUrl.startsWith("http")) {
         const search = await yts(videoUrl)
         if (!search.videos?.length) {
@@ -57,21 +56,21 @@ module.exports = {
         global.channelInfo
       )
 
-      // 📡 API
-      const res = await axios.get(
-        `${SOYMAYCOL_API}?url=${encodeURIComponent(videoUrl)}&type=mp3&apikey=${API_KEY}`,
-        { timeout: 60000 }
-      )
+      // 📡 NUEVA API (SIN KEY)
+      const res = await axios.get(ADONIX_API, {
+        params: { url: videoUrl },
+        timeout: 60000
+      })
 
       const result = res.data?.result
-      if (!result?.url) throw new Error("No se pudo obtener audio")
+      if (!result?.url) throw new Error("No se pudo obtener el audio")
 
       const safeTitle = (result.title || title)
         .replace(/[\\/:*?"<>|]/g, "")
         .trim()
         .slice(0, 60)
 
-      // Descargar audio
+      // ⬇️ Descargar audio
       const audioRes = await axios.get(result.url, {
         responseType: "arraybuffer",
         timeout: 120000
@@ -79,7 +78,7 @@ module.exports = {
 
       fs.writeFileSync("./temp.mp3", audioRes.data)
 
-      // Enviar
+      // 📤 Enviar audio
       await client.sendMessage(
         m.chat,
         {
@@ -107,5 +106,3 @@ module.exports = {
     }
   }
 }
-
-
