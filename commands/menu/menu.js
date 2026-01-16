@@ -43,26 +43,29 @@ module.exports = {
         .slice(0, 3)
 
     } catch (e) {
-      console.log("MENU STATS ERROR:", e)
+      console.log("SONGOKUBOT MENU ERROR:", e)
     }
 
+    // 🖼️ IMÁGENES DE GOKU
     const mediaList = [
-      "https://i.ibb.co/Xrxbcymh/IMG-20241011-WA0000.jpg"
+      "https://i.ibb.co/5hQJ7KZ/goku-ultra-instinct.jpg",
+      "https://i.ibb.co/F6qg4ZQ/goku-ssj-blue.jpg",
+      "https://i.ibb.co/qx0m1pX/goku-kamehameha.jpg"
     ]
 
     const randomMedia = mediaList[Math.floor(Math.random() * mediaList.length)]
 
     const topCmdText = topCommands.length
       ? topCommands.map((c, i) =>
-          `${i + 1}. *${usedPrefix}${c[0]}* — ${c[1]} usos`
+          `⚡ ${i + 1}. *${usedPrefix}${c[0]}* → ${c[1]} usos`
         ).join("\n")
-      : "Sin datos"
+      : "⚠️ Sin datos"
 
     const topUserText = topUsers.length
       ? topUsers.map((u, i) =>
-          `${i + 1}. ${u.name || u.number || u.id} — ${u.uses} usos`
+          `👤 ${i + 1}. ${u.name || u.number || u.id} → ${u.uses} usos`
         ).join("\n")
-      : "Sin datos"
+      : "⚠️ Sin datos"
 
     const topGroupText = topGroups.length
       ? await Promise.all(
@@ -72,37 +75,45 @@ module.exports = {
               const meta = await client.groupMetadata(g.id)
               name = meta.subject || g.id
             } catch {}
-            return `${i + 1}. ${name} — ${g.uses} usos`
+            return `🏠 ${i + 1}. ${name} → ${g.uses} usos`
           })
         ).then(r => r.join("\n"))
-      : "Sin datos"
+      : "⚠️ Sin datos"
 
     const caption = `
-╔═══════════════════════╗
-║ ⚡ 𝗞𝗜𝗟𝗟𝗨𝗔 𝗕𝗢𝗧 𝗗𝗩 v1.00 ⚡ ║
-╠═══════════════════════╣
-👤 Usuario: *${m.pushName}*
+╔══════════════════════════════╗
+║ 🐉🔥 𝗦𝗢𝗡 𝗚𝗢𝗞𝗨 𝗕𝗢𝗧 🔥🐉 ║
+║ ⚡ 𝗨𝗟𝗧𝗥𝗔 𝗜𝗡𝗦𝗧𝗜𝗡𝗧𝗢 ⚡ ║
+╚══════════════════════════════╝
 
-📊 *ESTADÍSTICAS*
-👥 Usuarios: *${totalUsers}*
-⚡ Comandos usados: *${totalUses}*
+👤 *Guerrero Z:* ${m.pushName}
 
-🔥 *TOP 3 COMANDOS*
+━━━━━━━━━━━━━━━━━━
+📊 *PODER DE COMBATE*
+👥 Guerreros activos: *${totalUsers}*
+⚡ Técnicas ejecutadas: *${totalUses}*
+
+━━━━━━━━━━━━━━━━━━
+🔥 *TOP 3 TÉCNICAS*
 ${topCmdText}
 
-👑 *TOP 3 USUARIOS*
+━━━━━━━━━━━━━━━━━━
+👑 *TOP 3 GUERREROS*
 ${topUserText}
 
-🏠 *TOP 3 GRUPOS*
+━━━━━━━━━━━━━━━━━━
+🏠 *TOP 3 UNIVERSOS*
 ${topGroupText}
 
 ━━━━━━━━━━━━━━━━━━
 📥 Descargas → ${usedPrefix}menu_descargas
 🎬 Películas & Series → ${usedPrefix}menu_peliculas
 🎮 Juegos → ${usedPrefix}menu_juegos
+📜 Menú Completo → ${usedPrefix}menu_completo
 
 ━━━━━━━━━━━━━━━━━━
-👑 *CREADOR: DVYER*
+🐲 *CREADOR:* DVYER  
+⚡ *El poder no tiene límites*
 `
 
     const buttons = [
@@ -112,13 +123,13 @@ ${topGroupText}
         type: 1
       },
       {
-        buttonId: `${usedPrefix}peliculas_series `,
+        buttonId: `${usedPrefix}menu_peliculas`,
         buttonText: { displayText: "🎬 Películas & Series" },
         type: 1
       },
       {
         buttonId: `${usedPrefix}menu_completo`,
-        buttonText: { displayText: "📜 Menú completo" },
+        buttonText: { displayText: "📜 Menú Completo" },
         type: 1
       },
       {
@@ -134,11 +145,10 @@ ${topGroupText}
         image: { url: randomMedia },
         caption,
         buttons,
-        footer: "⚡ Killua Bot DV • DVYER ⚡",
+        footer: "🐉 SonGokuBOT • Poder Saiyajin • DVYER 🐉",
         headerType: 4
       },
       { quoted: m, ...global.channelInfo }
     )
   }
 }
-
