@@ -6,6 +6,7 @@ const { payOrBypass } = require("../../lib/pay")
 
 const BOT_NAME = "KILLUA-BOT v1.00"
 const ADONIX_API = "https://api-adonix.ultraplus.click/download/ytaudio"
+const APIKEY = "dvyer"
 
 // 💰 COSTO
 const COSTO_AUDIO = 60
@@ -17,8 +18,6 @@ module.exports = {
 
   run: async (client, m, args) => {
     try {
-
-      // 💰 COBRAR O BYPASS
       const pay = await payOrBypass(m, COSTO_AUDIO, client)
       if (!pay.ok) return
 
@@ -26,8 +25,7 @@ module.exports = {
         return client.reply(
           m.chat,
           "❌ Usa: .ytaudio <nombre o link de YouTube>",
-          m,
-          global.channelInfo
+          m
         )
       }
 
@@ -37,71 +35,65 @@ module.exports = {
       // 🔎 Buscar si no es link
       if (!videoUrl.startsWith("http")) {
         const search = await yts(videoUrl)
-        if (!search.videos?.length) {
-          return client.reply(
-            m.chat,
-            "❌ No se encontraron resultados.",
-            m,
-            global.channelInfo
-          )
+        if (!search.videos.length) {
+          return client.reply(m.chat, "❌ No se encontraron resultados.", m)
         }
         videoUrl = search.videos[0].url
-        title = search.videos[0].title || title
+        title = search.videos[0].title
       }
 
       await client.reply(
         m.chat,
-        `⏳ Procesando audio...\n${pay.free ? "👑 Uso gratuito" : `💰 Costo: ${COSTO_AUDIO} ZEIN`}\n🤖 ${BOT_NAME}`,
-        m,
-        global.channelInfo
+        `⏳ Descargando audio...\n${pay.free ? "👑 Gratis" : `💰 -${COSTO_AUDIO} ZEIN`}\n🤖 ${BOT_NAME}`,
+        m
       )
 
-      // 📡 NUEVA API (SIN KEY)
+      // 📡 LLAMADA API (IMPORTANTE)
       const res = await axios.get(ADONIX_API, {
-        params: { url: videoUrl },
-        timeout: 60000
+        params: {
+          apikey: APIKEY,
+          url: videoUrl
+        },
+        timeout: 120000
       })
 
-      const result = res.data?.result
-      if (!result?.url) throw new Error("No se pudo obtener el audio")
+      const data = res.data
+
+      // 🔎 Compatibilidad con distintas respuestas
+      const result = data.result || data.data || data
+
+      if (!result.url) throw "Audio no generado"
 
       const safeTitle = (result.title || title)
         .replace(/[\\/:*?"<>|]/g, "")
-        .trim()
         .slice(0, 60)
 
-      // ⬇️ Descargar audio
-      const audioRes = await axios.get(result.url, {
+      // ⬇️ Descargar mp3
+      const audio = await axios.get(result.url, {
         responseType: "arraybuffer",
         timeout: 120000
       })
 
-      fs.writeFileSync("./temp.mp3", audioRes.data)
+      fs.writeFileSync("./temp.mp3", audio.data)
 
-      // 📤 Enviar audio
       await client.sendMessage(
         m.chat,
         {
           audio: fs.readFileSync("./temp.mp3"),
           mimetype: "audio/mpeg",
-          fileName: `${safeTitle}.mp3`,
-          caption:
-            `🎧 ${safeTitle}\n` +
-            (pay.free ? "👑 Gratis" : `💰 -${COSTO_AUDIO} ZEIN`) +
-            `\n🤖 ${BOT_NAME}`
+          fileName: `${safeTitle}.mp3`
         },
-        { quoted: m, ...global.channelInfo }
+        { quoted: m }
       )
 
       fs.unlinkSync("./temp.mp3")
 
-    } catch (err) {
-      console.error("YTAUDIO ERROR:", err.response?.data || err.message)
+    } catch (e) {
+      console.error("YTAUDIO:", e)
       client.reply(
         m.chat,
-        "❌ Error al descargar el audio.",
-        m,
-        global.channelInfo
+        "❌ La API tardó demasiado o falló.\nIntenta nuevamente.",
+        m
       )
     }
   }
