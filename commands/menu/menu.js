@@ -47,8 +47,7 @@ module.exports = {
     }
 
     const mediaList = [
-      "https://i.ibb.co/vxnNFXpY/menua3.webp",
-      "https://i.ibb.co/hFDcdpBg/menu.png"
+      "https://i.ibb.co/Xrxbcymh/IMG-20241011-WA0000.jpg"
     ]
 
     const randomMedia = mediaList[Math.floor(Math.random() * mediaList.length)]
